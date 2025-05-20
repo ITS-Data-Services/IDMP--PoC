@@ -1,0 +1,9 @@
+/* Customer reporting service project */
+
+apply from: project(':customer-core').file('customer-defaults.gradle')
+apply from: project(':idmp-core').file('idmp-service.gradle')
+
+dependencies {
+	implementation project(':insurancenow-reporting')
+	implementation project(':customer-core')
+}

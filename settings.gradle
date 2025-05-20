@@ -1,0 +1,14 @@
+/**
+ * Top-level customer implementation `settings.gradle`.
+ *
+ * Mix-and-match the common code projects needed by this customer implementation, pulling
+ * in only what you need to keep build times down.
+ *
+ * If you ever do need to build the full common codebase, run `gradle build` from the
+ * `common` folder.
+ */
+
+apply from: 'common/its/settings.gradle'
+apply from: 'common/idmp/settings.gradle'
+apply from: 'common/insurancenow/settings.gradle'
+apply from: 'customer/settings.gradle'

@@ -1,0 +1,3 @@
+/* Settings which apply to customer-core, as well as any customer of it */
+
+apply from: project(':insurancenow-core').file('insurancenow-defaults.gradle')

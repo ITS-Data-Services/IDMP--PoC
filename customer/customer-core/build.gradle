@@ -1,0 +1,7 @@
+/* Customer core code library */
+
+apply from: project(':customer-core').file('customer-defaults.gradle')
+
+dependencies {
+	api project(':insurancenow-core')
+}

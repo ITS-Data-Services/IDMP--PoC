@@ -1,0 +1,14 @@
+/**
+ * customer/settings.gradle
+ *
+ * Pulls in all of the customer projects, with some Gradle magic to make them
+ * filesystem location independent. To reference a customer project as a dependency,
+ * use the folder name, ex. `project(':customer-core')`.
+ */
+
+file('.').eachDir { module ->
+	if (new File(module, 'build.gradle').exists()) {
+		include(":${module.name}")
+		project(":${module.name}").projectDir = new File(buildscript.sourceFile.parent, module.name)
+	}
+}

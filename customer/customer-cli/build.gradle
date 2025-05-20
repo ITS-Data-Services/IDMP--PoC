@@ -1,0 +1,15 @@
+/* customer-cli/build.gradle */
+
+apply from: project(':customer-core').file('customer-defaults.gradle')
+apply from: project(':idmp-core').file('idmp-cli.gradle')
+
+jar {
+	manifest {
+		attributes('Main-Class': 'customer.Cli')
+	}
+}
+
+dependencies {
+	implementation project(':insurancenow-cli')
+	implementation project(':customer-core')
+}

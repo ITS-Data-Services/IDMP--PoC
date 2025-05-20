@@ -1,0 +1,5 @@
+/* Gradle doesn't allow plugins in include files, so this has to go here */
+plugins {
+	id "com.github.johnrengelman.shadow" version "8.1.1" apply false
+	id 'org.checkerframework' version '0.6.38' apply false
+}

@@ -1,0 +1,13 @@
+{
+    "files.exclude": {
+        "**/.apt_generated*": true,
+        "**/.classpath": true,
+        "**/.factorypath": true,
+        "**/.project": true
+    },
+	"java.compile.nullAnalysis.mode": "disabled",
+	"java.configuration.updateBuildConfiguration": "automatic",
+    "java.gradle.buildServer.enabled": "off",
+    "java.project.explorer.showNonJavaResources": false,
+    "java.import.gradle.annotationProcessing.enabled": false,
+}

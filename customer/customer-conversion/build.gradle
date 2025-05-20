@@ -1,0 +1,9 @@
+/* customer conversion service project */
+
+apply from: project(':customer-core').file('customer-defaults.gradle')
+apply from: project(':idmp-core').file('idmp-service.gradle')
+
+dependencies {
+	implementation project(':insurancenow-conversion')
+	implementation project(':customer-core')
+}
