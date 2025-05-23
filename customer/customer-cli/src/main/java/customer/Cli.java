@@ -6,6 +6,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.its.idmp.CliCommand;
+import com.its.idmp.Idmp;
 import com.its.idmp.IdmpCli;
 
 @Singleton
@@ -20,7 +21,9 @@ public class Cli extends IdmpCli
 
 	public static void main(String[] args)
 	{
-		var cli = DaggerCliFactory.create().cli();
-		cli.launch(args);
+		Idmp.configure();
+		DaggerCliFactory.create()
+			.cli()
+			.launch(args);
 	}
 }
