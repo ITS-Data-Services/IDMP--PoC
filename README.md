@@ -4,6 +4,4 @@ An example customer project used to drive development of the IDMPv3 platform. Ne
 
 ## Quick Links
 
-- [ITS Developer Guide](common/its/docs/Home.md)
-- [IDMP Developer Guide](common/idmp/docs/Home.md)
-- [InsuranceNow Developer Guide](common/insurancenow/docs/Home.md)
+- [Platform Documentation](common/README.md)

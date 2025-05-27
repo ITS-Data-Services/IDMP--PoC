@@ -1,7 +1,7 @@
 # Local IDMP files
 /archive/
 /jobs/
-*.properties
+idmp.properties
 
 # For now, remove when in real use
 /test/
