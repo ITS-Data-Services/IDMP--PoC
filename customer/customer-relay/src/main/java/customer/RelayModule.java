@@ -20,6 +20,11 @@ public interface RelayModule
 
 	@Binds
 	@IntoMap
+	@EntityTypeKey(EntityType.APPLICATION)
+	INowEntityLoader bindApplicationLoader(PolicyLoader applicationLoader);
+
+	@Binds
+	@IntoMap
 	@EntityTypeKey(EntityType.POLICY)
 	INowEntityLoader bindPolicyLoader(PolicyLoader policyLoader);
 }
