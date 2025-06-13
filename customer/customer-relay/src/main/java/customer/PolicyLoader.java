@@ -23,12 +23,14 @@ import com.zaxxer.hikari.HikariDataSource;
 
 public class PolicyLoader implements INowEntityLoader
 {
+	/* Round trips to the database server are SLOW, so querying for multiple rows
+	 * at once is a big performance win. The sort order ensures that we will always
+	 * see the most relevant version of the policy first, so we can safely ignore
+	 * any later rows we see with that policy identifier */
 	private static final String QUERY =
 		"select * from PMSP0200 where concat(TRIM(SYMBOL),POLICY0NUM) in (%s) order by MODULE desc";
 
-	/* Round trips to the database server are SLOW, so lump policies together and
-	 * query for their rows in a single request, pulling them apart on this side
-	 * where things run much faster  */
+	/* How many policies to request in a single query */
 	private static final int POLICIES_PER_QUERY = 100;
 
 	private final Logger logger;
@@ -42,18 +44,6 @@ public class PolicyLoader implements INowEntityLoader
 
 
 	/**
-	 * Return an entity identifier in our canonical customer-facing format from the
-	 * provided database row.
-	 */
-	private String convertToCustomerIdentifier(Map<String, Object> row)
-	{
-		var symbol = requireNonNull((String)row.get("SYMBOL")).trim();
-		var policy = requireNonNull((String)row.get("POLICY0NUM"));
-		return String.join("-", symbol, policy);
-	}
-
-
-	/**
 	 * It's easiest for us to look for `CONCAT(TRIM(SYMBOL),POLICY0NUM)`. Adjust any
 	 * of the common patterns the customer uses to identify entities to match this
 	 * desired format.
@@ -63,6 +53,18 @@ public class PolicyLoader implements INowEntityLoader
 		return identifier
 			.replace("-", "")
 			.replace(" ", "");
+	}
+
+
+	/**
+	 * Return an entity identifier in our canonical customer-facing format from the
+	 * provided database row.
+	 */
+	private String extractCustomerIdentifier(Map<String, Object> row)
+	{
+		var symbol = requireNonNull((String)row.get("SYMBOL")).trim();
+		var policy = requireNonNull((String)row.get("POLICY0NUM"));
+		return String.join("-", symbol, policy);
 	}
 
 
@@ -87,8 +89,7 @@ public class PolicyLoader implements INowEntityLoader
 				this.logger.info("Connecting to database");
 				try (var connection = dataSource.getConnection())
 				{
-					/* Add a placeholder for eac
-					h identifier to the SQL query */
+					/* Add a placeholder for each identifier to the SQL query */
 					var placeholders = "?,".repeat(batch.size() - 1) + "?";
 					var query = String.format(QUERY, placeholders);
 					this.logger.debug("Sending `{}`", query);
@@ -101,10 +102,11 @@ public class PolicyLoader implements INowEntityLoader
 
 						ResultSetEx.of(statement.executeQuery())
 							.stream()
+							.distinct(this::extractCustomerIdentifier)
 							.forEach(row -> {
 								// HERE - PROCESS THE ROW, GET A RESULT
 
-								var identifier = this.convertToCustomerIdentifier(row);
+								var identifier = this.extractCustomerIdentifier(row);
 								var module = requireNonNull((String)row.get("MODULE"));
 								this.logger.info("Loaded {} ({})", identifier, module);
 
