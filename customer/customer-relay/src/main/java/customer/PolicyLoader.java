@@ -3,7 +3,6 @@ package customer;
 import static java.util.Objects.requireNonNull;
 
 import java.sql.SQLException;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -14,6 +13,7 @@ import org.slf4j.Logger;
 
 import com.its.Batcher;
 import com.its.ExceptionEx;
+import com.its.ListEx;
 import com.its.ResultSetEx;
 import com.its.insurancenow.INowEntityLoader;
 import com.its.insurancenow.INowRelayRequest;
@@ -28,7 +28,7 @@ public class PolicyLoader implements INowEntityLoader
 	 * see the most relevant version of the policy first, so we can safely ignore
 	 * any later rows we see with that policy identifier */
 	private static final String QUERY =
-		"select * from PMSP0200 where concat(TRIM(SYMBOL),POLICY0NUM) in (%s) order by MODULE desc";
+		"select * from PMSP0200 where concat(concat(TRIM(SYMBOL),'-'),POLICY0NUM) in (%s) order by MODULE desc";
 
 	/* How many policies to request in a single query */
 	private static final int POLICIES_PER_QUERY = 100;
@@ -40,19 +40,6 @@ public class PolicyLoader implements INowEntityLoader
 	public PolicyLoader(Logger logger)
 	{
 		this.logger = logger;
-	}
-
-
-	/**
-	 * It's easiest for us to look for `CONCAT(TRIM(SYMBOL),POLICY0NUM)`. Adjust any
-	 * of the common patterns the customer uses to identify entities to match this
-	 * desired format.
-	 */
-	private String convertToDatabaseIdentifier(String identifier)
-	{
-		return identifier
-			.replace("-", "")
-			.replace(" ", "");
 	}
 
 
@@ -84,7 +71,7 @@ public class PolicyLoader implements INowEntityLoader
 		try (var dataSource = new HikariDataSource(config))
 		{
 			/* Assemble a batch of policies to fetch in a single query */
-			var idBatcher = new Batcher<String>(POLICIES_PER_QUERY, batch ->
+			var workItems = new Batcher<RelayWorkItem>(POLICIES_PER_QUERY, batch ->
 			{
 				this.logger.info("Connecting to database");
 				try (var connection = dataSource.getConnection())
@@ -98,26 +85,25 @@ public class PolicyLoader implements INowEntityLoader
 					{
 						/* Assign entity identifiers to all the placeholders */
 						for (var i = 0; i < batch.size(); ++i)
-							statement.setString(i + 1, batch.get(i));
+							statement.setString(i + 1, batch.get(i).identifier());
 
 						ResultSetEx.of(statement.executeQuery())
 							.stream()
 							.distinct(this::extractCustomerIdentifier)
 							.forEach(row -> {
-								// HERE - PROCESS THE ROW, GET A RESULT
-
 								var identifier = this.extractCustomerIdentifier(row);
 								var module = requireNonNull((String)row.get("MODULE"));
-								this.logger.info("Loaded {} ({})", identifier, module);
+								this.logger.info("Loading {} ({})", identifier, module);
 
-								var result = INowRelayResult.builder()
-									.identifier(identifier)
-									.entityType(request.entityType())
-									.startedAt(ZonedDateTime.now())
-									.finishedAt(ZonedDateTime.now())
-									.build();
+								var workItem = ListEx.findFirst(batch, item ->
+									identifier.equals(item.identifier()))
+									.orElseThrow();
 
+								// HERE - PROCESS THE ROW, GET A RESULT
+
+								var result = workItem.complete();
 								onComplete.accept(result);
+								this.logger.info("Completed {} ({})", identifier, module);
 							});
 					}
 				}
@@ -127,11 +113,12 @@ public class PolicyLoader implements INowEntityLoader
 				}
 			});
 
+			/* Send through the list of identifiers and do the work */
 			identifiers
-				.map(this::convertToDatabaseIdentifier)
-				.forEach(idBatcher::add);
+				.map(identifier -> new RelayWorkItem(request, identifier))
+				.forEach(workItems::add);
 
-			idBatcher.flush();
+			workItems.flush();
 		}
 	}
 }
